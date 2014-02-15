@@ -1,0 +1,230 @@
+\documentclass[12pt,a4paper]{article}
+\usepackage{listings}
+
+\usepackage{amsmath}
+\begin{document}
+\lstset{ %
+language=java,                % choose the language of the code
+basicstyle=\footnotesize,       % the size of the fonts that are used for the code
+numbers=left,                   % where to put the line-numbers
+numberstyle=\footnotesize,      % the size of the fonts that are used for the line-numbers
+stepnumber=1,                   % the step between two line-numbers. If it is 1 each line will be numbered
+numbersep=5pt,                  % how far the line-numbers are from the code
+showspaces=false,               % show spaces adding particular underscores
+showstringspaces=false,         % underline spaces within strings
+showtabs=false,                 % show tabs within strings adding particular underscores
+frame=single,           % adds a frame around the code
+tabsize=2,          % sets default tabsize to 2 spaces
+captionpos=b,           % sets the caption-position to bottom
+breaklines=true,        % sets automatic line breaking
+breakatwhitespace=false,    % sets if automatic breaks should only happen at whitespace
+escapeinside={\%*}{*)}          % if you want to add a comment within your code
+}
+
+
+%%	Title page
+\title{Building Modeler Plugin Developer Reference Guide}
+\author{Joseph Lewis\\
+	\texttt{joehms22@gmail.com}
+	}
+\date{July 13 2012}
+\maketitle
+
+\break
+
+
+%%	Table of Contents
+\tableofcontents
+\break
+
+
+
+\section{Introduction}
+
+One of the Building Modeler's greatest features is the ability to add dynamic and
+complex calculators to rooms, allowing complex data processing to be done in a
+generic way, easily applied to many situations. These plugins allow end-users
+the ability to incorporate advanced mathematics without the need to understand
+it enough to actually do the modeling.
+
+The different kinds of plugins available will be discussed in the following 
+sections.
+
+
+%%	Wattage calc plugins, other plugins later
+\section{Wattage Calculation Plugins}
+
+Wattage calculator plugins are added to rooms in a building. They run once per
+timestep and have the ability to calculate values based upon:
+
+\begin{itemize}
+  \item parameters input by the user
+  \item data feeds
+  \item events occuring in other rooms
+\end{itemize}
+
+There are two general classes that may be subclassed in order to create plugins. The higher level one, \texttt{Plugin}, needs the \texttt{getWatts()} method to be implemented in all subclasses. The \texttt{getWatts()} method can make calls to the rest of the software and adds wattages by using one of the \texttt{addWatts()} methods.
+
+If you need more control on what goes on then subclass \texttt{ActivityPlugin}. Full documentation for doing this can be found within the \texttt{ActivityPlugin} source.
+
+\subsection{Example Subclass}
+
+\begin{lstlisting}
+package bmod.wattagecalculator;
+
+/**
+ * A Study hall that occurs if nothing else is going on.
+ */
+public class StudyHall extends Plugin
+{
+	public void getWatts()
+	{
+		// Count number of things going on _now_
+		int activities = getActivities(room, startTime, endTime).length;
+		
+		// If there are more than one activities no
+		// study hall can be going on.
+		if(activities > 0)
+			return;
+		
+		// If there is something else going on tomorrow there
+		// will be students studying.
+		if(getActivities(room, startTime, startTime.plusHours(24))
+				.length > 0)
+			addWatts(2000);
+	}
+}
+\end{lstlisting}
+
+This is probably the simplest plugin you could make that actually does something. It makes sure there are no activities going on in the current room in the current time span, then adds a \emph{fixed} number of watts to the output.
+
+\subsection[Available Variables in Plugin]{Available Variables in \texttt{Plugin}}
+\subsubsection[activity]{\texttt{activity}}
+The \texttt{activity} variable is of type \texttt{BuildingActivity}, it is the link between the current function and the function you implement.
+
+
+\subsubsection[startTime and endTime]{\texttt{startTime} and \texttt{endTime}}
+The \texttt{startTime} and \texttt{endTime} variables represent the times for the time step the plugin is being evaluated for. For example, if you ran the model at 1 min intervals from Jan 1 to Jan 2, \texttt{startTime} might be Jan 1 at 12:00 a.m. and \texttt{endTime} might be Jan 1 at 12:01 a.m.
+
+\begin{center}
+\begin{tabular}{p{3cm}p{3cm}p{6.5cm}}
+	\hline
+	\textbf{Method} & \textbf{Return Type} & \textbf{Description}\\ 
+	\hline
+	toISODate()& \emph{String} & Returns the ISO 8601 date for this date. (YYYY-MM-DD HH:MM:SS)\\ 
+	\hline
+	getDayOfWeek()& \emph{String} & Returns the full name for the day of week, language specific. e.g. Monday\\
+	\hline
+	plusSeconds(int secs)& \emph{DateTime} & Returns a new DateTime with the same time as this one, plus the given number of seconds\\
+	\hline
+	plusMiliseconds(int secs)& \emph{DateTime} & Returns a new DateTime with the same time as this one, plus the given number of miliseconds\\
+	\hline
+	plusHours(int secs)& \emph{DateTime} & Returns a new DateTime with the same time as this one, plus the given number of hours\\
+	\hline
+	toMidnight()& \emph{DateTime} & Returns a new DateTime, the same day as this, but set to midnight\\
+	\hline
+	before(DateTime o)& \emph{boolean} & True if this time is before the given one\\
+	\hline
+	after(DateTime o)& \emph{boolean} & True if this time is after the given one\\
+	\hline
+	equals(DateTime o)& \emph{boolean} & True if this time is the same as the given one\\
+	\hline
+	getHour()& \emph{int} & The hour of day this time represents 0 - 23 (0 is midnight)\\
+	\hline
+\end{tabular}
+\end{center}
+\subsubsection[room]{\texttt{room}}
+The \texttt{room} variable is of type \texttt{Room} and is the room for which the plugin is being run.
+
+\begin{center}
+\begin{tabular}{p{3cm}p{3cm}p{6.5cm}}
+	\hline
+	\textbf{Method} & \textbf{Return Type} & \textbf{Description}\\ 
+	\hline
+	getBuilding()& \emph{Building} & Returns the \texttt{Building} this room is in.\\ 
+	\hline
+	getRoom()& \emph{String} & Returns the name of this room. e.g. "102"\\
+	\hline
+\end{tabular}
+\end{center}
+
+\subsubsection[building]{\texttt{building}}
+The \texttt{building} variable is of type \texttt{Building} and has the following useful methods:
+
+\begin{center}
+\begin{tabular}{p{3cm}p{3cm}p{6.5cm}}
+	\hline
+	\textbf{Method} & \textbf{Return Type} & \textbf{Description}\\ 
+	\hline
+	getId()& \emph{String} & Returns the name of the given building\\ 
+	\hline
+	equals(Object o)& \emph{boolean} & {True if the buildings are the same, False otherwise.}\\
+	\hline
+\end{tabular}
+\end{center}
+
+\subsection[Available Methods in Plugin]{Available Methods in \texttt{Plugin}}
+\subsubsection{\texttt{throwError(String error)}}
+Reports an error to the logging console, and warns the user upon completion of the run that errors were detected while running. Error messages look something like this:
+\begin{quote}
+Error PluginClassName: The error message
+\end{quote}
+
+
+
+\subsubsection{\texttt{logInfo(String error)}}
+Reports a piece of information to the logging console.
+\begin{quote}
+Info PluginClassName: The information message
+\end{quote}
+
+
+
+\subsubsection{\texttt{addWatts(double watts)}}
+Reports the given number of watts as being consumed by this Plugin. Note that watts may be negative, allowing photovoltaic arrays to be dynamically calculated.
+
+
+\subsubsection{\texttt{addWatts(double watts, String notes)}}
+Does the same as \texttt{addWatts(double watts)}, but includes a bit of information in the output file about what exactly was being generated.
+
+Could be useful for things like elevators reporting which floor they were going to most and using electricity for.
+
+
+\subsubsection{\texttt{getActivities(Room rm)}}
+Returns an array of all building activities (\texttt{BuildingActivity[]}) that occur in 
+the given room.
+
+
+\subsubsection{\texttt{getActivities(Room rm, DateTime start, DateTime end)}}
+Finds all activities in the given room at a particular time. Params:
+\begin{itemize}
+  \item rm - The room for which to get activities for.
+  \item start - The beginning time for which to fetch activities.
+  \item end - The end time for which to fetch activities.
+\end{itemize}
+
+Returns an array of all activities (\texttt{BuildingActivity[]}) that happen in the given room within the given time range.
+
+
+\subsubsection{\texttt{getRoomPopulationAt(DateTime start, DateTime end, Room rm)}}
+Returns the population of the given room between the given times.
+\begin{itemize}
+  \item rm - The room for which to get population for.
+  \item start - The beginning time for which to fetch population.
+  \item end - The end time for which to fetch population.
+\end{itemize}
+
+
+	public double getFeedValue(String feedName, Building b, DateTime startTime, DateTime endTime, DBWarningsList dbwl)
+
+\subsubsection[getFeedValue(...)]{\texttt{getFeedValue(String feedName, Building b, DateTime startTime, DateTime endTime, DBWarningsList dbwl)}}
+
+Returns the average value of the feed with the given name in the given building
+between the given times. Reports errors to the \texttt{DBWarningsList} provided.
+
+\subsubsection{\texttt{getWatts(String deviceTypeName)}}
+Returns the number of watts consumed by a \texttt{DeviceType} with the given name. e.g. "Elevator"
+
+
+
+\end{document}

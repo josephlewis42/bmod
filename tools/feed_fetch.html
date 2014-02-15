@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+
+<html>
+	<head>
+		<title>Feed Fetcher</title>
+		<style>
+		input:required:invalid, input:focus:invalid { border:1px solid #ff0000; }
+		
+		td {
+		   padding:10px;
+		   border:1px solid #000;
+		}
+		</style>
+		<script src="http://code.jquery.com/jquery-1.9.0.min.js"></script>
+		<script src="http://cdnjs.cloudflare.com/ajax/libs/moment.js/1.7.2/moment.min.js"></script>
+		<script src="https://raw.github.com/guillaumepotier/Garlic.js/master/dist/garlic.min.js"></script>
+		
+		<script type='text/javascript'>
+			var wantedTimes = [];
+			const SERVER_DATE_FORMAT = "YYYY-MM-DD HH:mm:ssZ"
+			const OUTSIDE_VALUE = 60 * 1000 * 180;
+			
+			function reportData(data)
+			{
+				function closest (num, arr) {
+		            var curr = arr[0];
+		            var diff = Math.abs (num - curr);
+		            for (var val = 0; val < arr.length; val++) {
+		                var newdiff = Math.abs (num - arr[val]);
+		                if (newdiff < diff) {
+		                    diff = newdiff;
+		                    curr = arr[val];
+		                }
+		            }
+		            return curr;
+		        }
+		        
+				var points = data['points'];
+				
+				var timeVals = {};
+				
+				for(var i = 0; i < points.length; i++)
+				{
+					var start = moment(points[i].start, SERVER_DATE_FORMAT).valueOf();
+					var end   = moment(points[i].end, SERVER_DATE_FORMAT).valueOf();
+					var value = parseInt(points[i].value);
+				
+					timeVals[start] = value;
+					timeVals[end] = value;
+				}
+				
+				var timeKeys = Object.keys(timeVals);
+				$('#output').html("");
+				for(var j = 0; j < wantedTimes.length; j++)
+				{
+						var tmp = closest(wantedTimes[j], timeKeys);
+						var value = timeVals[tmp];
+						
+						if(value == NaN || Math.abs(wantedTimes[j] - tmp) > OUTSIDE_VALUE)
+							value = "null";
+						
+						$('#output').append("<tr><td>" + new Date(wantedTimes[j]) + "</td><td>" + value + "</td></tr>");
+				}
+			}
+	
+			function fetchFeed()
+			{
+				wantedTimes = [];
+				closests = [];
+				values = [];
+				
+				var APIKEY = $('#key').val();
+				var startDate = $('#start').val();
+				var endDate = $('#end').val();
+				var id = $('#feed').val();
+				var increment = parseInt($('#increment').val());
+				var url = "http://smartgrid.cs.du.edu/feed/api/1/all/"+id+"/json/"+startDate+"/"+endDate+"/?jsonp=reportData&key="+APIKEY;
+				$('#url').text(url);
+				
+				var start = moment(startDate, "YYYY-MM-DD HH:mm:ss");
+				var end = moment(endDate, "YYYY-MM-DD HH:mm:ss");
+				
+				while(start < end)
+				{
+					wantedTimes.push(start.valueOf());
+					
+					start.add("seconds", increment);
+				}
+				
+				$.ajax({
+					dataType: "jsonp",
+					url: url,
+					success: function(){}
+				});
+				
+				return false;
+			}
+  			$( 'form' ).garlic();
+		</script>
+	</head>
+	
+	<body>
+		<form onsubmit='fetchFeed()'>
+		<p>Enter Your API Key: <input id='key' type='text' value='98594693-2556-49ec-9679-4d73a2978a45' required></input></p>
+		<p>Enter The Feed Number: <input id='feed' type='number' pattern='\d+' required></input></p>
+		<p>Enter your start date (must be in format YYYY-MM-DD HH:MM:SS): <input id='start' type='text' pattern="\d\d\d\d-\d\d-\d\d \d\d:\d\d:\d\d" required></input></p>
+		<p>Enter your end date (must be in format YYYY-MM-DD HH:MM:SS): <input id='end' type='text' pattern="\d\d\d\d-\d\d-\d\d \d\d:\d\d:\d\d" required></input></p>
+		<p>Enter your increment in seconds: <input id='increment' type='number' pattern="\d+" value="900"required></input></p>
+		<input type='button' onclick='fetchFeed()' value="Fetch!"></input>
+		</form>
+		<hr>
+		<p>Output will appear here</p>
+		<p id='url'></p>
+		<table id='output'></table>
+	</body>
+</html>
