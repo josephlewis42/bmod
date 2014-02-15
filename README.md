@@ -1,7 +1,7 @@
 README
 ======
 
-![https://raw.github.com/joehms22/bmod/master/documents/logo_ideas/turb_empty_bg.png](https://raw.github.com/joehms22/bmod/master/documents/logo_ideas/turb_empty_bg.png)
+![https://raw.github.com/joehms22/bmod/master/documents/logo_ideas/turb_empty_small.png](https://raw.github.com/joehms22/bmod/master/documents/logo_ideas/turb_empty_small.png)
 
 Purpose
 -------
